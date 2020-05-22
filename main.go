@@ -1,34 +1,33 @@
 package main
 
 import (
-	"bytes"
-	"github.com/dimkasta/mailer/mail"
-	"github.com/dimkasta/mailer/service"
-	"text/template"
+	"github.com/dimkasta/goemail"
+	"github.com/dimkasta/gologger"
+	"github.com/dimkasta/goteplate"
 )
 
 func main() {
-	logger := service.NewLoggerService()
-    logger.Log.Info("Initialized")
+	logger := gologger.NewLoggerService()
+	logger.Info("Initialized")
 
-	html := "" +
-		"<html><body><h1>Hello World!<small>{{ .test }}</small></h1></body></html>"
-
-	template, _ := template.New("UsersPage").Parse(string(html))
-
-	var body bytes.Buffer
+	repository := goteplate.NewSqliteTemplateRepository("templates.db", logger)
+	templater := goteplate.NewTemplateService(logger, repository)
 
 	data := make(map[string]string)
-	data["test"] = "value"
+	data["test"] = "value new"
 
-	template.Execute(&body, data)
+	output, err := templater.Get("test", data)
 
-	email := mail.NewHtmlMail()
-	email.SetFrom("dimkasta@yahoo.gr", "Dimitris")
-	email.AddTo("d.kastaniotis@iconic.gr","Giorgos")
-	email.SetSubject("Subject goes Here")
-	email.SetBody(body.String())
+	if nil != err {
+		logger.Error(err.Error())
+	}
 
-	mailer := mail.NewMailer(logger, "localhost:1025")
-	mailer.Send(email)
+	message := goemail.NewHtmlMail()
+	message.SetFrom("dimkasta@yahoo.gr", "Dimitris")
+	message.AddTo("d.kastaniotis@iconic.gr", "Giorgos")
+	message.SetSubject("Subject goes Here")
+	message.SetBody(output)
+
+	mailer := goemail.NewMailer(logger, "localhost:1025")
+	mailer.Send(message)
 }
